@@ -1,26 +1,31 @@
-import TediousConnection from 'tedious/lib/connection';
-const { Connection, Request, TYPES } = require('tedious');
+import { Connection, Request, ConnectionConfiguration, TYPES } from 'tedious';
+import { Task, UnitTask } from './tasks/task.interface';
 
 require('dotenv').config();
 
-export function establishConnections() {
-  const config: any = {
-    server: `${process.env.DB_HOST}`,
+const config: ConnectionConfiguration = {
+  server: `${process.env.DB_HOST}`,
+  options: {
+    trustServerCertificate: true,
+    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 1433,
+  },
+  authentication: {
+    type: 'default',
     options: {
-      trustServerCertificate: true,
-    },
-    authentication: {
-      type: 'default',
-      options: {
-        userName: `${process.env.DB_USER}`,
-        password: `${process.env.DB_PASSWORD}`,
-      }
+      userName: `${process.env.DB_USER}`,
+      password: `${process.env.DB_PASSWORD}`,
     }
-  };
+  }
+};
 
+export function establishConnections() {
   const connection = new Connection(config);
 
-  const table = '[dbo].[task]';
+  const tableSchema = 'dbo';
+  const tableName = 'task';
+
+  const checkTalbeSql = `IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' AND TABLE_NAME='${tableName}') SELECT 1 AS res ELSE SELECT 0 AS res`;
+  const createTalbeSql = `CREATE TABLE [${tableSchema}].[${tableName}] (id nvarchar(255) not null, title nvarchar(255) not null, description nvarchar(255), status nvarchar(50) not null, due_date datetime not null)`;
 
   connection.on('connect', function (err: any) {
     if (err) {
@@ -28,34 +33,71 @@ export function establishConnections() {
       throw err;
     }
     // If no error, then good to go...
-    createTable();
+    createTaskTable().catch(console.error).finally(() => console.log("Table Initialization Complete!"));
   });
 
   connection.connect();
 
-  async function createTable() {
-    const checkTalbeSql = `IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' AND TABLE_NAME='${table}') SELECT 1 AS res ELSE SELECT 0 AS res`;
-    const checkExists = new Request(checkTalbeSql, (err: any) => {
-      if (err) {
-        throw err;
-      }
-    });
+  async function createTaskTable() {
+    const conn = await connectAsync(config);
 
-    const result = await connection.execSql(checkExists);
-    if (result === 1) {
-      console.log(`'${table}' already exists!`);
+    const existsRows = await execSqlAsync<{ res: number }>(conn, checkTalbeSql);
+    if (existsRows[0].res > 0) {
+      console.log('Table already exists!');
+      conn.close();
       return;
     }
 
-    const sql = `CREATE TABLE ${table} (id uniqueidentifier not null, title nvarchar(255) not null, description nvarchar(255), status nvarchar(50) not null, due_date datetime not null)`;
-    const request = new Request(sql, (err: any) => {
-      if (err) {
-        throw err;
-      }
-
-      console.log(`'${table}' created!`);
-    });
-    connection.execSql(request);
+    await execSqlAsync(conn, createTalbeSql);
+    console.log('Table created!');
+    conn.close();
   }
 }
 
+export function connectAsync(config: any): Promise<Connection> {
+  return new Promise((resolve, reject) => {
+    const conn = new Connection(config);
+    conn.on('connect', err => err ? reject(err) : resolve(conn));
+    conn.connect();
+  });
+}
+
+export function execSqlAsync<UnitTask>(conn: Connection, sql: string): Promise<UnitTask[]> {
+  return new Promise((resolve, reject) => {
+    const rows: UnitTask[] = [];
+    const req = new Request(sql, (err) => {
+      if (err){
+        reject(err);
+      }
+      else {
+        resolve(rows);
+      }
+    });
+    req.on('row', cols => {
+      const obj: any = {};
+      cols.forEach((c: { metadata: { colName: string | number; }; value: any; }) => (obj[c.metadata.colName] = c.value));
+      rows.push(obj as UnitTask);
+    });
+    conn.execSql(req);
+  });
+}
+
+export async function runSQLGetAsync(sql: string): Promise<UnitTask[]> {
+  const conn = await connectAsync(config);
+
+  const SqlReq = await execSqlAsync(conn, sql);
+  if (SqlReq.length === 0) {
+    console.log('No rows returned!');
+    conn.close();
+    return []
+  }
+  conn.close();
+  return SqlReq as UnitTask[];
+}
+
+export async function runSQLPostAsync(sql: string){
+  const conn = await connectAsync(config);
+
+  const SqlReq = await execSqlAsync(conn, sql);
+  conn.close();
+}

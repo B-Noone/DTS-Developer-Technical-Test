@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import { establishConnections } from "./manageSQLServer";
+import { taskRouter } from "./tasks/task.routes"
 
 require('dotenv').config();
 
@@ -16,6 +17,8 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(helmet());
+
+app.use('/', taskRouter);
 
 establishConnections();
 
