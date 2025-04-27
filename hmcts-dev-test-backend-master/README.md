@@ -1,7 +1,10 @@
 # Backend Readme
 Runs on Port 4000 by default.
+
 Requires SQL Server Database running locally, with a database accepting SQL Server Authentication, default port set to 1433.
+
 .env can be configured to connect to a different IP or port along with user login info.
+
 To begin api run:
 `npm run dev`
 
