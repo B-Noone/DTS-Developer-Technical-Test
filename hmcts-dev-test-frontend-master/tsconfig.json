@@ -1,24 +1,26 @@
 {
   "compilerOptions": {
-    "outDir": "./src/",
-    "module": "commonjs",
+    "target": "es5",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2020",
     "strict": true,
-    "noImplicitAny": true,
-    "noImplicitThis": false,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
     "moduleResolution": "node",
-    "noUnusedLocals": true,
-    "experimentalDecorators": true,
-    "useUnknownInCatchVariables": false,
-    "skipLibCheck": true,
-    "lib": ["es2020", "dom", "dom.iterable"],
-    "baseUrl": "src/main",
-    "paths": {
-      "router/*": ["router/*"],
-      "routes/*": ["routes/*"]
-    }
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx"
   },
-  "exclude": ["**/*.test.ts", "**/codecept.conf.ts", "**/__mocks__/*"]
+  "include": [
+    "src"
+  ]
 }
