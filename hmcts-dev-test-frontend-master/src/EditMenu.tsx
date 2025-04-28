@@ -17,13 +17,6 @@ interface ControlMenuProps {
     finishClick: (data: data) => void;
 }
 
-const CloseMenu = () => {
-    const centerScreen = document.querySelector('#EditMenu') as HTMLElement;
-    if (centerScreen) {
-        centerScreen.style.display = 'none';
-    }
-}
-
 const CheckValidDate = (newDate: string) => {
     const date = new Date(newDate);
     if (isNaN(date.getTime())) {
@@ -34,14 +27,23 @@ const CheckValidDate = (newDate: string) => {
 
 
 function EditMenu({ id, title, status, dueDate, description, finishClick }: ControlMenuProps) {
+    console.log("EditMenu:", dueDate);
     const dateToUse = CheckValidDate(dueDate.toString()) ? dueDate.toISOString() : new Date().toISOString();
-
     const [titleString, setTitleString] = React.useState(title);
     const [descriptionString, setDescriptionString] = React.useState(description || "");
     const [statusString, setStatusString] = React.useState(status);
     const [dueDateString, setDueDateString] = React.useState(dateToUse);
-
+    const [errorMsg, setErrorMsg] = React.useState<string>("")
+    
     const [data, setData] = React.useState<data>();
+    
+    const CloseMenu = () => {
+        setErrorMsg("");
+        const centerScreen = document.querySelector('#EditMenu') as HTMLElement;
+        if (centerScreen) {
+            centerScreen.style.display = 'none';
+        }
+    }
 
     useEffect(() => {
         setData({
@@ -53,8 +55,18 @@ function EditMenu({ id, title, status, dueDate, description, finishClick }: Cont
         });
     }, [titleString, descriptionString, statusString, dueDateString, id, title, description, status, dueDate]);
 
+    useEffect(() => {
+        setDueDateString(dateToUse);
+    }, [dateToUse])
+
     const handleClick = () => {
-        CloseMenu();
+        setErrorMsg("");
+        if (!CheckValidDate(data?.dueDate.toString() ?? "")) {
+            setErrorMsg("Invalid Date");
+            setDueDateString(dateToUse);
+            return;
+        }
+
         console.log("Finish Pressed");
         console.log(data);
         if (data) {
@@ -74,9 +86,12 @@ function EditMenu({ id, title, status, dueDate, description, finishClick }: Cont
                 <p>Status</p>
                 <input type="text" placeholder={status} value={statusString} onChange={(e) => setStatusString(e.target.value)} />
                 <p>Due Date</p>
-                <input type="text" placeholder={dateToUse} value={dueDateString} onChange={(e) => setDueDateString(e.target.value)} />
+                <input type="text" placeholder={dueDateString} value={dueDateString} onChange={(e) => setDueDateString(e.target.value)} />
                 <button className="control-menu-button-cancel" onClick={CloseMenu}>Cancel</button>
                 <button id="FinishButtonEdit" className="control-menu-button-finish" onClick={handleClick}>Finish</button>
+                {errorMsg && (
+                    <p>{errorMsg}</p>
+                )}
             </div>
         </div>
     );

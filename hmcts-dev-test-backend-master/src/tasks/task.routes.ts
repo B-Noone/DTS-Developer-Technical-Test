@@ -9,7 +9,7 @@ taskRouter.get('/tasks', async (req: Request, res: Response) => {
     try {
         const allTasks = await database.findAll();
 
-        if (!allTasks || allTasks.length === 0) {
+        if (!allTasks) {
             res.status(StatusCodes.NOT_FOUND).json({ error: `No tasks found!` });
             return;
         }
@@ -75,7 +75,7 @@ taskRouter.get('/findTasks', async (req: Request, res: Response) => {
         const taskParam: Task = req.query as any;
         const tasks = await database.findTasks(taskParam);
 
-        if (!tasks || tasks.length === 0) {
+        if (!tasks) {
             res.status(StatusCodes.NOT_FOUND).json({ error: `No tasks found!` });
             return;
         }
